@@ -173,7 +173,7 @@ object Node2vec extends Serializable {
         Try(pathBuffer.mkString("\t")).getOrElse(null)
       }
       .filter(x => x != null && x.replaceAll("\\s", "").length > 0)
-      .repartition(200)
+      .repartition(1)
       .saveAsTextFile(config.output)
 
     this
