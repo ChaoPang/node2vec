@@ -16,7 +16,7 @@ object Node2vec extends Serializable {
   var context: SparkContext = null
   var config: Main.Params = null
   var node2id: RDD[(String, Long)] = null
-  var filteredNodes: RDD[Long] = null
+  var filteredNodes: RDD[(VertexId, Long)] = null
   var indexedEdges: RDD[Edge[EdgeAttr]] = _
   var indexedNodes: RDD[(VertexId, NodeAttr)] = _
   var graph: Graph[NodeAttr, EdgeAttr] = _
