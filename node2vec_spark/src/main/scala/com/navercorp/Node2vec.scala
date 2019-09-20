@@ -60,7 +60,7 @@ object Node2vec extends Serializable {
     }
 
     if (filteredNodes != null) {
-      indexedNodes = indexedNodes.join(filteredNodes).map((_._1, _._2._1))
+      indexedNodes = indexedNodes.join(filteredNodes).map(t => (t._1, t._2._1))
     }
 
     indexedNodes = indexedNodes.repartition(200).cache
