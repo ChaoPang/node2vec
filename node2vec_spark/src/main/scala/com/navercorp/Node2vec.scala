@@ -16,7 +16,7 @@ object Node2vec extends Serializable {
   var context: SparkContext = null
   var config: Main.Params = null
   var node2id: RDD[(String, Long)] = null
-  var filteredNodes: RDD[(VertexId, Long)] = null
+  var filteredNodes: RDD[(String, String)] = null
   var indexedEdges: RDD[Edge[EdgeAttr]] = _
   var indexedNodes: RDD[(VertexId, NodeAttr)] = _
   var graph: Graph[NodeAttr, EdgeAttr] = _
@@ -43,8 +43,8 @@ object Node2vec extends Serializable {
 
     if (config.filter != null) {
       val rawFilter = context.textFile(config.filter)
-      filteredNodes = rawFilter.map({ vertexId =>
-        (vertexId.toLong, vertexId.toLong)
+      filteredNodes = rawFilter.map({ x =>
+        (x, x)
       })
     }
 
@@ -60,7 +60,11 @@ object Node2vec extends Serializable {
     }
 
     if (filteredNodes != null) {
-      indexedNodes = indexedNodes.join(filteredNodes).map(t => (t._1, t._2._1))
+      val filteredIndexId = filteredNodes.join(node2id).map(x => (x._2._2, x._2._2))
+      filteredIndexId.map({ x =>
+        (x, x)
+      }).collect().foreach(println)
+      indexedNodes = indexedNodes.join(filteredIndexId).map(x => (x._1, x._2._1))
     }
 
     indexedNodes = indexedNodes.repartition(200).cache
@@ -80,12 +84,12 @@ object Node2vec extends Serializable {
 
     graph = Graph(indexedNodes, indexedEdges)
       .mapVertices[NodeAttr] { case (vertexId, clickNode) =>
-        val (j, q) = GraphOps.setupAlias(clickNode.neighbors)
-        val nextNodeIndex = GraphOps.drawAlias(j, q)
-        clickNode.path = Array(vertexId, clickNode.neighbors(nextNodeIndex)._1)
+      val (j, q) = GraphOps.setupAlias(clickNode.neighbors)
+      val nextNodeIndex = GraphOps.drawAlias(j, q)
+      clickNode.path = Array(vertexId, clickNode.neighbors(nextNodeIndex)._1)
 
-        clickNode
-      }
+      clickNode
+    }
       .mapTriplets { edgeTriplet: EdgeTriplet[NodeAttr, EdgeAttr] =>
         val (j, q) = GraphOps.setupEdgeAlias(bcP.value, bcQ.value)(edgeTriplet.srcId, edgeTriplet.srcAttr.neighbors, edgeTriplet.dstAttr.neighbors)
         edgeTriplet.attr.J = j

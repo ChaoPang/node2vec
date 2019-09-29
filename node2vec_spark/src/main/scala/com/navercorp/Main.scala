@@ -4,6 +4,7 @@ import java.io.Serializable
 import org.apache.spark.{SparkContext, SparkConf}
 import scopt.OptionParser
 import com.navercorp.lib.AbstractParams
+import org.apache.log4j.{Level, Logger}
 
 object Main {
 
@@ -72,9 +73,9 @@ object Main {
       .required()
       .text("Output path: empty")
       .action((x, c) => c.copy(output = x))
-    opt[String]("filter")
+    opt[String]("filter")Logger.getLogger("org").setLevel(Level.OFF)
       .text("Filter for including the vertices")
-      .action((x, c) => c.copy(output = x))
+      .action((x, c) => c.copy(filter = x))
     opt[String]("cmd")
       .required()
       .text(s"command: ${defaultParams.cmd.toString}")
@@ -100,7 +101,7 @@ object Main {
     parser.parse(args, defaultParams).map { param =>
       val conf = new SparkConf().setAppName("Node2Vec")
       val context: SparkContext = new SparkContext(conf)
-
+      Logger.getLogger("com").setLevel(Level.OFF)
       Node2vec.setup(context, param)
 
       param.cmd match {
