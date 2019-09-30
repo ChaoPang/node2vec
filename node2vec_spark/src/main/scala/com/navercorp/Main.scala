@@ -27,7 +27,7 @@ object Main {
                     weighted: Boolean = true,
                     directed: Boolean = false,
                     degree: Int = 30,
-                    indexed: Boolean = true,
+                    indexed: Boolean = false,
                     nodePath: String = null,
                     input: String = null,
                     output: String = null,
@@ -73,7 +73,7 @@ object Main {
       .required()
       .text("Output path: empty")
       .action((x, c) => c.copy(output = x))
-    opt[String]("filter")Logger.getLogger("org").setLevel(Level.OFF)
+    opt[String]("filter")
       .text("Filter for including the vertices")
       .action((x, c) => c.copy(filter = x))
     opt[String]("cmd")

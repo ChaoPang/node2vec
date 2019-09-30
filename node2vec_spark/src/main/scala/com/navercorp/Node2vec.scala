@@ -57,17 +57,7 @@ object Node2vec extends Serializable {
       }
 
       (nodeId, NodeAttr(neighbors = neighbors_.distinct))
-    }
-
-    if (filteredNodes != null) {
-      val filteredIndexId = filteredNodes.join(node2id).map(x => (x._2._2, x._2._2))
-      filteredIndexId.map({ x =>
-        (x, x)
-      }).collect().foreach(println)
-      indexedNodes = indexedNodes.join(filteredIndexId).map(x => (x._1, x._2._1))
-    }
-
-    indexedNodes = indexedNodes.repartition(200).cache
+    }.repartition(200).cache
 
     indexedEdges = indexedNodes.flatMap { case (srcId, clickNode) =>
       clickNode.neighbors.map { case (dstId, weight) =>
@@ -84,12 +74,12 @@ object Node2vec extends Serializable {
 
     graph = Graph(indexedNodes, indexedEdges)
       .mapVertices[NodeAttr] { case (vertexId, clickNode) =>
-      val (j, q) = GraphOps.setupAlias(clickNode.neighbors)
-      val nextNodeIndex = GraphOps.drawAlias(j, q)
-      clickNode.path = Array(vertexId, clickNode.neighbors(nextNodeIndex)._1)
+        val (j, q) = GraphOps.setupAlias(clickNode.neighbors)
+        val nextNodeIndex = GraphOps.drawAlias(j, q)
+        clickNode.path = Array(vertexId, clickNode.neighbors(nextNodeIndex)._1)
 
-      clickNode
-    }
+        clickNode
+      }
       .mapTriplets { edgeTriplet: EdgeTriplet[NodeAttr, EdgeAttr] =>
         val (j, q) = GraphOps.setupEdgeAlias(bcP.value, bcQ.value)(edgeTriplet.srcId, edgeTriplet.srcAttr.neighbors, edgeTriplet.dstAttr.neighbors)
         edgeTriplet.attr.J = j
@@ -109,12 +99,25 @@ object Node2vec extends Serializable {
     edge2attr.first
 
     for (iter <- 0 until config.numWalks) {
+
       var prevWalk: RDD[(Long, ArrayBuffer[Long])] = null
       var randomWalk = graph.vertices.map { case (nodeId, clickNode) =>
         val pathBuffer = new ArrayBuffer[Long]()
         pathBuffer.append(clickNode.path: _*)
         (nodeId, pathBuffer)
       }.cache
+
+      randomWalk.foreach(x => println("BEFORE VERTEX_ID:" + x._2))
+
+      if (filteredNodes != null) {
+        val filteredIndexId = filteredNodes.join(node2id).map(x => (x._2._2, x._2._2))
+        print("RANDOM WALK BEFORE FILTER " + randomWalk.count())
+        randomWalk = randomWalk.join(filteredIndexId).map(x => (x._1, x._2._1))
+        print("RANDOM WALK BEFORE FILTER " + randomWalk.count())
+      }
+
+      randomWalk.foreach(x => println("AFTER VERTEX_ID:" + x._2))
+
       var activeWalks = randomWalk.first
       graph.unpersist(blocking = false)
       graph.edges.unpersist(blocking = false)
